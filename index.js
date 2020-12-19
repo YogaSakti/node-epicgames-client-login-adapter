@@ -108,6 +108,7 @@ class EpicGamesClientLoginAdapter {
   }
 
   static async authenticate(credentials, page, options) {
+    console.log('Logging in');
     const login = credentials.login || credentials.email || credentials.username;
     if (login && credentials.password) {
       const loginWithEpicButton = await page.waitForSelector('#login-with-epic');
@@ -116,7 +117,7 @@ class EpicGamesClientLoginAdapter {
       await usernameOrEmailField.type(login, { delay: options.inputDelay });
       const passwordField = await page.waitForSelector('#password');
       await passwordField.type(credentials.password, { delay: options.inputDelay });
-      const loginButton = await page.waitForSelector('#login:not(:disabled)');
+      const loginButton = await page.waitForSelector('#sign-in:not(:disabled)');
       await loginButton.click();
     }
 
@@ -124,9 +125,12 @@ class EpicGamesClientLoginAdapter {
       timeout: options.enterCredentialsTimeout + 100,
     });
 
+    //console.log(page);
+
     let captcha = page.waitForXPath('//iframe[@title="arkose-enforcement"]', {
       timeout: options.enterCredentialsTimeout + 100
     });
+
 
     let result = await this.waitForFirst([captcha, account], options.enterCredentialsTimeout, page.url());
     if (result instanceof ElementHandle) {
@@ -135,8 +139,7 @@ class EpicGamesClientLoginAdapter {
   }
 
   static async handleCaptcha(enforcementFrame, page, options) {
-    let frame = await (await enforcementFrame.waitForXPath('//iframe[@title="challenge frame"]')).contentFrame();
-    frame = await (await frame.waitForSelector('iframe')).contentFrame();
+    //frame = await (await frame.waitForSelector('iframe')).contentFrame();
     frame = await (await frame.waitForSelector('#CaptchaFrame')).contentFrame();
 
     let timeout = 10000;
@@ -167,7 +170,7 @@ class EpicGamesClientLoginAdapter {
       width: 500,
       height: 800,
       inputDelay: 100,
-      enterCredentialsTimeout: 60000,
+      enterCredentialsTimeout: 80000000,
       puppeteer: {},
       cookies: [],
       ...userOptions,
@@ -190,6 +193,18 @@ class EpicGamesClientLoginAdapter {
     if (options.cookies && options.cookies.length) {
       await page.setCookie(...options.cookies);
     }
+
+    // Set user agent
+
+    await page.evaluateOnNewDocument(() => {
+      Object.defineProperty(navigator, 'platform', { get: () => 'Win32' })
+      Object.defineProperty(navigator, 'productSub', { get: () => '20030107' })
+      Object.defineProperty(navigator, 'vendor', { get: () => 'Google Inc.' })
+      Object.defineProperty(navigator, 'oscpu', { get: () => undefined })
+      Object.defineProperty(navigator, 'cpuClass', { get: () => undefined })
+    });
+
+    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.198 Safari/537.36');
 
     const pendingXHR = new PendingXHR(page);
     const pendingDocument = new PendingXHR(page);
