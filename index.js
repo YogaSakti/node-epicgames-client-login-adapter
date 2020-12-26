@@ -176,7 +176,7 @@ class EpicGamesClientLoginAdapter {
       ...userOptions,
     };
     const browser = await Puppeteer.launch({
-      headless: false,
+      headless: true,
       defaultViewport: {
         width: options.width,
         height: options.height,
